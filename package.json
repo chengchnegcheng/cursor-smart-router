@@ -27,6 +27,22 @@
       {
         "command": "cursor-smart-router.setApiToken",
         "title": "设置Cursor API Token"
+      },
+      {
+        "command": "cursor-smart-router.refreshToken",
+        "title": "刷新Cursor Token"
+      },
+      {
+        "command": "cursor-smart-router.rotateToken",
+        "title": "轮换Cursor Token"
+      },
+      {
+        "command": "cursor-smart-router.webLogin",
+        "title": "Cursor网页登录"
+      },
+      {
+        "command": "cursor-smart-router.openAccountManager",
+        "title": "打开Cursor账户管理"
       }
     ],
     "configuration": {
@@ -39,8 +55,13 @@
         },
         "cursor-smart-router.updateInterval": {
           "type": "number",
-          "default": 60,
-          "description": "状态更新间隔（秒）"
+          "default": 60000,
+          "description": "状态更新间隔（毫秒）"
+        },
+        "cursor-smart-router.tokenRefreshInterval": {
+          "type": "number",
+          "default": 1800000,
+          "description": "Token刷新间隔（毫秒）"
         }
       }
     }
@@ -49,17 +70,24 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
     "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^16.11.7",
     "@types/vscode": "^1.60.0",
-    "typescript": "^4.5.5",
-    "vsce": "^2.7.0"
+    "@types/mocha": "^9.0.0",
+    "typescript": "^4.8.4",
+    "vsce": "^2.15.0",
+    "mocha": "^9.1.3",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "eslint": "^8.26.0"
   },
   "dependencies": {
-    "axios": "^0.24.0",
-    "node-cache": "^5.1.2",
-    "winston": "^3.3.3"
+    "axios": "^1.6.2",
+    "node-cache": "^5.1.2"
   }
 }

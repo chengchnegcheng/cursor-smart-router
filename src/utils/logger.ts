@@ -1,41 +1,53 @@
-import winston from 'winston';
+import * as vscode from 'vscode';
 
 export class Logger {
-  private logger: winston.Logger;
+  private outputChannel: vscode.OutputChannel;
 
   constructor() {
-    this.logger = winston.createLogger({
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-      ),
-      transports: [
-        new winston.transports.File({ filename: 'error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'combined.log' })
-      ]
-    });
+    this.outputChannel = vscode.window.createOutputChannel('Cursor Smart Router');
+  }
 
-    // 开发环境下同时输出到控制台
-    if (process.env.NODE_ENV !== 'production') {
-      this.logger.add(new winston.transports.Console({
-        format: winston.format.simple()
-      }));
+  public info(message: string, ...args: any[]): void {
+    this.log('INFO', message, ...args);
+  }
+
+  public error(message: string, error?: any): void {
+    this.log('ERROR', message, error);
+    if (error && error.message) {
+      vscode.window.showErrorMessage(`${message}: ${error.message}`);
+    } else {
+      vscode.window.showErrorMessage(message);
     }
   }
 
-  info(message: string, ...args: any[]): void {
-    this.logger.info(`[Cursor-Router] ℹ️ ${message}`, ...args);
+  public warn(message: string, ...args: any[]): void {
+    this.log('WARN', message, ...args);
   }
 
-  error(message: string, error?: any): void {
-    this.logger.error(`[Cursor-Router] ❌ ${message}`, error);
+  public debug(message: string, ...args: any[]): void {
+    this.log('DEBUG', message, ...args);
   }
 
-  warn(message: string, ...args: any[]): void {
-    this.logger.warn(`[Cursor-Router] ⚠️ ${message}`, ...args);
-  }
+  private log(level: string, message: string, ...args: any[]): void {
+    const timestamp = new Date().toISOString();
+    let logMessage = `[${timestamp}] [${level}] ${message}`;
+    
+    if (args.length > 0) {
+      args.forEach((arg) => {
+        if (arg instanceof Error) {
+          logMessage += `\n${arg.stack || arg.message}`;
+        } else if (typeof arg === 'object') {
+          try {
+            logMessage += `\n${JSON.stringify(arg, null, 2)}`;
+          } catch (e) {
+            logMessage += `\n${arg}`;
+          }
+        } else {
+          logMessage += `\n${arg}`;
+        }
+      });
+    }
 
-  success(message: string, ...args: any[]): void {
-    this.logger.info(`[Cursor-Router] ✅ ${message}`, ...args);
+    this.outputChannel.appendLine(logMessage);
   }
 }

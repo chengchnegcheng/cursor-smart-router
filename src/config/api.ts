@@ -6,7 +6,9 @@ export const API_CONFIG = {
   ENDPOINTS: {
     USER_STATUS: '/user/status',
     USER_USAGE: '/user/usage',
-    MODEL_STATUS: '/models/status'
+    MODEL_STATUS: '/models/status',
+    AUTH_TOKEN: '/auth/token',
+    VALIDATE_TOKEN: '/auth/validate'
   },
   CACHE_TTL: {
     USER_STATUS: 300, // 5分钟
