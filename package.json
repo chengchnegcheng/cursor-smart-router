@@ -15,17 +15,35 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
-    "onCommand:cursor-smart-router.enable"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "cursor-smart-router.enable",
-        "title": "启用智能路由"
+        "command": "cursor-smart-router.showStatus",
+        "title": "显示Cursor状态"
+      },
+      {
+        "command": "cursor-smart-router.setApiToken",
+        "title": "设置Cursor API Token"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Cursor智能路由",
+      "properties": {
+        "cursor-smart-router.apiEndpoint": {
+          "type": "string",
+          "default": "https://api.cursor.sh/v1",
+          "description": "Cursor API端点"
+        },
+        "cursor-smart-router.updateInterval": {
+          "type": "number",
+          "default": 60,
+          "description": "状态更新间隔（秒）"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

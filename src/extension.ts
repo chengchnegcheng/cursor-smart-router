@@ -1,42 +1,83 @@
 import * as vscode from 'vscode';
+import { UserStateDetector, UserState } from './core/detector';
 
-// 创建状态栏项
 let statusBarItem: vscode.StatusBarItem;
+let userStateDetector: UserStateDetector;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     console.log('Cursor智能路由插件已激活');
+
+    // 初始化用户状态检测器
+    userStateDetector = new UserStateDetector();
 
     // 创建状态栏项
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.text = "$(sync) 智能路由: Claude3.7";
-    statusBarItem.tooltip = "点击切换模型";
-    statusBarItem.command = 'cursor-smart-router.enable';
-    statusBarItem.show();
+    statusBarItem.command = 'cursor-smart-router.showStatus';
+    context.subscriptions.push(statusBarItem);
 
     // 注册命令
-    let disposable = vscode.commands.registerCommand('cursor-smart-router.enable', () => {
-        vscode.window.showInformationMessage('智能路由已启用！');
-        updateStatusBar('Claude-3.5-Sonnet'); // 更新状态栏显示
+    let disposable = vscode.commands.registerCommand('cursor-smart-router.showStatus', async () => {
+        try {
+            const userState = await userStateDetector.getUserState();
+            showUserStatus(userState);
+        } catch (error) {
+            vscode.window.showErrorMessage('获取用户状态失败');
+        }
     });
 
-    context.subscriptions.push(disposable, statusBarItem);
+    context.subscriptions.push(disposable);
+
+    // 注册设置API Token的命令
+    let setTokenCommand = vscode.commands.registerCommand('cursor-smart-router.setApiToken', async () => {
+        const token = await vscode.window.showInputBox({
+            prompt: '请输入Cursor API Token',
+            password: true
+        });
+
+        if (token) {
+            await context.secrets.store('cursorApiToken', token);
+            process.env.CURSOR_API_TOKEN = token;
+            vscode.window.showInformationMessage('API Token已更新');
+            updateStatusBar();
+        }
+    });
+
+    context.subscriptions.push(setTokenCommand);
+
+    // 初始化时从密钥存储中获取token
+    const token = await context.secrets.get('cursorApiToken');
+    if (token) {
+        process.env.CURSOR_API_TOKEN = token;
+    }
+
+    // 定期更新状态栏
+    setInterval(updateStatusBar, 60000); // 每分钟更新一次
+    updateStatusBar(); // 初始更新
 }
 
-// 更新状态栏显示
-function updateStatusBar(model: string) {
-    let icon = '$(sync)';
-    switch (model) {
-        case 'Claude-3.5-Sonnet':
-            icon = '$(rocket)'; // 快速模式
-            break;
-        case 'Claude3.7-Sonnet':
-            icon = '$(star)'; // 高质量模式
-            break;
-        case 'Gemini-2.5-Pro':
-            icon = '$(light-bulb)'; // 备选模式
-            break;
+async function updateStatusBar() {
+    try {
+        const userState = await userStateDetector.getUserState();
+        const icon = userState.isPro ? '$(star)' : '$(info)';
+        const text = `${icon} Cursor: ${userState.fastRequestsRemaining}次`;
+        statusBarItem.text = text;
+        statusBarItem.tooltip = `Pro会员: ${userState.isPro ? '是' : '否'}\n剩余快速请求: ${userState.fastRequestsRemaining}`;
+        statusBarItem.show();
+    } catch (error) {
+        statusBarItem.text = '$(error) Cursor';
+        statusBarItem.tooltip = '获取状态失败';
+        statusBarItem.show();
     }
-    statusBarItem.text = `${icon} 智能路由: ${model}`;
+}
+
+function showUserStatus(userState: UserState) {
+    const statusMessage = 
+        `Pro会员: ${userState.isPro ? '✓' : '✗'}\n` +
+        `快速请求剩余: ${userState.fastRequestsRemaining}\n` +
+        `总请求次数: ${userState.totalRequests}\n` +
+        `可用模型: ${userState.modelAccess.join(', ')}`;
+
+    vscode.window.showInformationMessage(statusMessage, { modal: true });
 }
 
 export function deactivate() {

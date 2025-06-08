@@ -1,30 +1,59 @@
 import { Logger } from '../utils/logger';
 import NodeCache from 'node-cache';
-import axios from 'axios';
+import { apiClient, API_CONFIG } from '../config/api';
+
+export interface UserState {
+  isPro: boolean;
+  fastRequestsRemaining: number;
+  totalRequests: number;
+  modelAccess: string[];
+}
 
 export class UserStateDetector {
   private logger: Logger;
   private cache: NodeCache;
-  private readonly CACHE_TTL = 300; // 5分钟缓存（秒）
 
   constructor() {
     this.logger = new Logger();
-    this.cache = new NodeCache({ stdTTL: this.CACHE_TTL });
+    this.cache = new NodeCache();
   }
 
-  async checkProMembership(): Promise<boolean> {
+  async getUserState(): Promise<UserState> {
     try {
-      const cached = this.cache.get<boolean>('proStatus');
+      const cached = this.cache.get<UserState>('userState');
       if (cached !== undefined) {
         return cached;
       }
 
-      // 模拟API调用
-      const response = await axios.get('/api/user/status');
-      const isPro = response.data.tier === 'pro';
-      
-      this.cache.set('proStatus', isPro);
-      return isPro;
+      const [statusResponse, usageResponse] = await Promise.all([
+        apiClient.get(API_CONFIG.ENDPOINTS.USER_STATUS),
+        apiClient.get(API_CONFIG.ENDPOINTS.USER_USAGE)
+      ]);
+
+      const userState: UserState = {
+        isPro: statusResponse.data.tier === 'pro',
+        fastRequestsRemaining: usageResponse.data.fastRequests.remaining,
+        totalRequests: usageResponse.data.totalRequests,
+        modelAccess: statusResponse.data.accessibleModels || []
+      };
+
+      this.cache.set('userState', userState, API_CONFIG.CACHE_TTL.USER_STATUS);
+      return userState;
+    } catch (error) {
+      this.logger.error('获取用户状态失败', error);
+      return {
+        isPro: false,
+        fastRequestsRemaining: 0,
+        totalRequests: 0,
+        modelAccess: []
+      };
+    }
+  }
+
+  async checkProMembership(): Promise<boolean> {
+    try {
+      const userState = await this.getUserState();
+      return userState.isPro;
     } catch (error) {
       this.logger.error('检查Pro会员状态失败', error);
       return false;
@@ -33,20 +62,21 @@ export class UserStateDetector {
 
   async getRemainingFastRequests(): Promise<number> {
     try {
-      const cached = this.cache.get<number>('fastRequests');
-      if (cached !== undefined) {
-        return cached;
-      }
-
-      // 模拟API调用
-      const response = await axios.get('/api/user/usage');
-      const remaining = response.data.fastRequests.remaining;
-      
-      this.cache.set('fastRequests', remaining);
-      return remaining;
+      const userState = await this.getUserState();
+      return userState.fastRequestsRemaining;
     } catch (error) {
       this.logger.error('获取快速请求次数失败', error);
       return 0;
+    }
+  }
+
+  async hasModelAccess(model: string): Promise<boolean> {
+    try {
+      const userState = await this.getUserState();
+      return userState.modelAccess.includes(model);
+    } catch (error) {
+      this.logger.error('检查模型访问权限失败', error);
+      return false;
     }
   }
 }
