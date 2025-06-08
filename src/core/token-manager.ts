@@ -173,27 +173,58 @@ export class TokenManager {
     }
 
     // 启动Token自动刷新
-    public startTokenRefresh(): void {
-        if (this.refreshTimer) {
-            clearInterval(this.refreshTimer);
-        }
+    public async startTokenRefresh(): Promise<void> {
+        try {
+            if (this.refreshTimer) {
+                clearInterval(this.refreshTimer);
+            }
 
-        this.refreshTimer = setInterval(async () => {
-            try {
-                // 检查当前Token是否即将过期
-                if (this.tokenInfo && this.tokenInfo.expiresAt - Date.now() < this.REFRESH_INTERVAL) {
-                    // 获取新Token
-                    const newToken = await this.getNewTokenFromAPI();
-                    if (newToken) {
-                        await this.saveToken(newToken, 'refresh');
-                        // 更新环境变量
-                        process.env.CURSOR_API_TOKEN = newToken;
+            // 首次启动时立即检查Token
+            const currentToken = await this.getToken();
+            if (!currentToken) {
+                this.logger.warn('未检测到有效Token，请先登录');
+                return;
+            }
+
+            // 验证当前Token
+            const isValid = await this.validateToken(currentToken);
+            if (!isValid) {
+                this.logger.warn('当前Token无效，尝试刷新');
+                await this.rotateToken();
+            }
+
+            this.refreshTimer = setInterval(async () => {
+                try {
+                    // 检查当前Token是否即将过期
+                    if (this.tokenInfo && this.tokenInfo.expiresAt - Date.now() < this.REFRESH_INTERVAL) {
+                        this.logger.info('Token即将过期，开始刷新');
+                        // 获取新Token
+                        const newToken = await this.getNewTokenFromAPI();
+                        if (newToken) {
+                            await this.saveToken(newToken, 'refresh');
+                            // 更新环境变量
+                            process.env.CURSOR_API_TOKEN = newToken;
+                            this.logger.info('Token刷新成功');
+                        } else {
+                            this.logger.error('获取新Token失败');
+                        }
+                    }
+                } catch (error) {
+                    this.logger.error('Token自动刷新失败', error);
+                    // 如果刷新失败，尝试使用备用方法
+                    try {
+                        await this.rotateToken();
+                    } catch (backupError) {
+                        this.logger.error('备用Token刷新也失败', backupError);
                     }
                 }
-            } catch (error) {
-                this.logger.error('Token自动刷新失败', error);
-            }
-        }, this.REFRESH_INTERVAL);
+            }, this.REFRESH_INTERVAL);
+
+            this.logger.info('Token自动刷新服务已启动');
+        } catch (error) {
+            this.logger.error('启动Token自动刷新服务失败', error);
+            throw error;
+        }
     }
 
     // 停止Token自动刷新
