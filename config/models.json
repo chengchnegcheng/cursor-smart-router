@@ -1,0 +1,16 @@
+{
+  "fast_model": "claude-3.5",
+  "slow_models": {
+    "claude3.7-sonnet": {
+      "avg_response_time": 15000,
+      "max_retries": 2
+    },
+    "gemini-2.5-pro": {
+      "avg_response_time": 12000,
+      "max_retries": 3
+    }
+  },
+  "performance_threshold": 8000,
+  "degradation_threshold": 3,
+  "cache_ttl": 300000
+}
