@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
   (config) => {
     // 从VSCode扩展上下文获取token
     const token = process.env.CURSOR_API_TOKEN || '';
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
