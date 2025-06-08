@@ -43,7 +43,7 @@ export class MetricsCollector {
   recordRouting(data: {
     originalModel: string;
     selectedModel: string;
-    isCritical: boolean;
+    operationType: string;
   }): void {
     this.logger.info('路由记录', data);
     // TODO: 实现指标收集和分析

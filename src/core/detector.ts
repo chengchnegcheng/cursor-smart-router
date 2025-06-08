@@ -36,7 +36,7 @@ export class UserStateDetector {
         totalRequests: usageResponse.data.totalRequests,
         modelAccess: statusResponse.data.accessibleModels || []
       };
-
+      
       this.cache.set('userState', userState, API_CONFIG.CACHE_TTL.USER_STATUS);
       return userState;
     } catch (error) {

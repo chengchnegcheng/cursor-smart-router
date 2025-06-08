@@ -1,12 +1,12 @@
 # Cursor智能路由插件开发文档 📚
 
-> 版本：v1.0.1 | 最后更新：2024-03-21
+> 版本：v1.0.1 
 
 ## 一、项目概述 🎯
 
 Cursor智能路由插件旨在为Pro会员用户提供动态模型路由能力，实现以下核心目标：
 
-- ✨ **智能降级**：非关键操作自动切换至快速模型（如Claude-3.5）
+- ✨ **智能降级**：非关键操作自动切换至快速模型（如Claude-3.5或Gemini-2.5-pro）
 - ⚡ **性能优化**：避免慢速模型导致的响应延迟
 - 📊 **实时监控**：动态跟踪和调整路由策略
 - 🔐 **安全认证**：支持API Token管理和安全存储
@@ -33,11 +33,11 @@ Cursor智能路由插件旨在为Pro会员用户提供动态模型路由能力�
 ### 2.2 操作类型分类
 
 #### 非关键操作（已实现自动降级）✅
-- 代码补全建议
-- 单行注释生成
-- 简单语法修正
-- 变量重命名建议
-- 基础文档查询
+- 代码补全建议 → Gemini-2.5-pro/Claude-3.5
+- 单行注释生成 → Gemini-2.5-pro/Claude-3.5
+- 简单语法修正 → Gemini-2.5-pro/Claude-3.5
+- 变量重命名建议 → Gemini-2.5-pro/Claude-3.5
+- 基础文档查询 → Gemini-2.5-pro/Claude-3.5
 
 #### 关键操作（保持高质量模型）✅
 - 完整函数/类实现
@@ -106,7 +106,19 @@ cursor-smart-router/
     "Claude-3.5-Sonnet"
   ],
   "maxLatency": 5000,
-  "degradationThreshold": 3
+  "degradationThreshold": 3,
+  "modelConfig": {
+    "Gemini-2.5-Pro": {
+      "averageLatency": 8000,
+      "costPerToken": 0.0002,
+      "bestFor": [
+        "代码补全",
+        "简单重构",
+        "文档生成",
+        "语法检查"
+      ]
+    }
+  }
 }
 ```
 
@@ -152,8 +164,9 @@ vsce package -o cursor-smart-router.vsix
 | 测试场景 | 输入示例 | 预期模型 |
 |---------|---------|----------|
 | 关键操作 | "重构这个Python类" | Claude3.7-Sonnet |
-| 非关键操作 | "添加文档注释" | Claude-3.5-Sonnet |
+| 非关键操作 | "添加文档注释" | Gemini-2.5-Pro/Claude-3.5-Sonnet |
 | 模型超时 | 任意复杂查询 | 自动切换至备用模型 |
+| 代码补全 | "补全这个函数" | Gemini-2.5-Pro/Claude-3.5-Sonnet |
 
 ## 八、未来规划 🔮
 
